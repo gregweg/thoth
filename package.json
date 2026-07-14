@@ -1,0 +1,16 @@
+{
+  "name": "investment-learning-lab",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @ill/server --filter @ill/web run dev",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "db:generate": "pnpm --filter @ill/server run db:generate",
+    "db:migrate": "pnpm --filter @ill/server run db:migrate",
+    "db:studio": "pnpm --filter @ill/server run db:studio"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
