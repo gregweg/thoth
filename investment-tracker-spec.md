@@ -361,6 +361,12 @@ Each of these phases is small and repeats the same shape:
 4. Let it reach at least an `eod` checkpoint, review the result, mark it reviewed.
 5. Confirm the next strategy unlocks.
 
+**Phase 1 (`long_equity`) — content done in code.** Education copy lives in
+`packages/shared` `strategyContentRegistry.long_equity`. Single-leg P&L from Phase 0
+already covers this strategy. Remaining: place a practice trade in the UI, capture
+`eod`, mark reviewed, confirm `short_equity` unlocks (skip if already completed
+during Phase 0 smoke testing).
+
 Grouping (`PlayGroup`) functionality gets built out during the `pairs_trade` phase
 (#13), since that's the strategy that actually needs it — earlier strategies can
 technically be assigned to a group manually, but there's no strong reason to before

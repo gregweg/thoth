@@ -17,21 +17,28 @@ export function StrategiesPage() {
     <section className="panel">
       <h2>Strategies</h2>
       <p className="muted">
-        Progress is gated in a fixed order. Locked strategies can be read; trading
-        unlocks after you complete the previous one.
+        Progress is gated in a fixed order. Open an unlocked or completed
+        strategy to place a new play (choose your own symbol and size). Locked
+        strategies are read-only until you finish the previous one.
       </p>
       {error && <div className="error">{error}</div>}
       <ul className="strategy-list">
-        {items.map((s, i) => (
-          <li key={s.strategyType}>
-            <div>
-              <Link to={`/strategies/${s.strategyType}`}>
-                {i + 1}. {s.strategyType}
-              </Link>
-            </div>
-            <span className={`badge ${s.status}`}>{s.status}</span>
-          </li>
-        ))}
+        {items.map((s, i) => {
+          const canTrade = s.status === "unlocked" || s.status === "completed";
+          return (
+            <li key={s.strategyType}>
+              <div>
+                <Link to={`/strategies/${s.strategyType}${canTrade ? "#trade" : ""}`}>
+                  {i + 1}. {s.strategyType.replaceAll("_", " ")}
+                </Link>
+                {canTrade && (
+                  <span className="muted"> — place a play here</span>
+                )}
+              </div>
+              <span className={`badge ${s.status}`}>{s.status}</span>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

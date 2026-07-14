@@ -56,6 +56,23 @@ export async function getStrategyDetail(strategyType: StrategyType) {
 
   const previous = getPreviousStrategy(strategyType);
 
+  const playsWithCheckpoints = await Promise.all(
+    playRows.map(async (p) => {
+      const detail = await getPlayDetail(p.id);
+      return {
+        id: p.id,
+        strategyType: p.strategyType,
+        entryDate: p.entryDate,
+        thesis: p.thesis,
+        status: p.status,
+        hasEod: detail?.hasEod ?? false,
+        hasFollowUp: detail?.hasFollowUp ?? false,
+        unrealizedPnl: detail?.pnl.unrealizedPnl ?? null,
+        pctReturn: detail?.pnl.pctReturn ?? null,
+      };
+    }),
+  );
+
   return {
     content: getStrategyContent(strategyType),
     progress: progress
@@ -67,13 +84,7 @@ export async function getStrategyDetail(strategyType: StrategyType) {
         }
       : { strategyType, status: "locked" as const, completedPlayId: null, reviewedAt: null },
     previousStrategy: previous ?? null,
-    plays: playRows.map((p) => ({
-      id: p.id,
-      strategyType: p.strategyType,
-      entryDate: p.entryDate,
-      thesis: p.thesis,
-      status: p.status,
-    })),
+    plays: playsWithCheckpoints,
   };
 }
 

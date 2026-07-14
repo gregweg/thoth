@@ -41,6 +41,10 @@ export interface PlaySummary {
   thesis: string | null;
   status: "open" | "closed";
   createdAt?: string;
+  hasEod?: boolean;
+  hasFollowUp?: boolean;
+  unrealizedPnl?: number | null;
+  pctReturn?: number | null;
 }
 
 export interface PlayDetail {

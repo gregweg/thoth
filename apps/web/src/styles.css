@@ -153,6 +153,22 @@ button,
   border: none;
   padding: 0.55rem 0.9rem;
   cursor: pointer;
+  text-decoration: none;
+}
+
+a.button:hover {
+  text-decoration: none;
+  filter: brightness(1.05);
+}
+
+#trade {
+  scroll-margin-top: 1rem;
+}
+
+h4 {
+  font-family: var(--font-display);
+  margin: 1rem 0 0.35rem;
+  font-size: 1.05rem;
 }
 
 button:disabled,
