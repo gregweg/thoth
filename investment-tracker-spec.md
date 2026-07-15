@@ -367,6 +367,11 @@ already covers this strategy. Remaining: place a practice trade in the UI, captu
 `eod`, mark reviewed, confirm `short_equity` unlocks (skip if already completed
 during Phase 0 smoke testing).
 
+**Phase 2 (`short_equity`) — content done in code.** Education copy in
+`strategyContentRegistry.short_equity`. Entry leg is `sell_short`; Phase 0 single-leg
+P&L already inverts correctly when price falls. Place a practice short in the UI,
+capture `eod`, mark reviewed, confirm `covered_call` unlocks.
+
 Grouping (`PlayGroup`) functionality gets built out during the `pairs_trade` phase
 (#13), since that's the strategy that actually needs it — earlier strategies can
 technically be assigned to a group manually, but there's no strong reason to before

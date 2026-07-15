@@ -62,9 +62,55 @@ export const strategyContentRegistry: StrategyContentRegistry = {
     ],
     legs: [{ side: "buy", vehicleType: "equity", label: "Buy shares" }],
   },
-  short_equity: stub("short_equity", [
-    { side: "sell_short", vehicleType: "equity", label: "Sell short shares" },
-  ]),
+  short_equity: {
+    strategyType: "short_equity",
+    description:
+      "Sell shares you do not own (borrowed from a lender), expecting the price to " +
+      "fall. This is still a single-leg equity trade, but P&L runs the opposite way " +
+      "of a long: you profit if the mark drops below your short sale price, and you " +
+      "lose if it rises. To close, you buy the shares back (buy to cover) and return " +
+      "them. In this app the entry is recorded as sell_short; later marks show " +
+      "unrealized P&L until you close the play.",
+    economicCleavage:
+      "Short selling is how the market expresses a view that a price is too high — " +
+      "overvaluation, deteriorating fundamentals, a fading narrative, or a negative " +
+      "catalyst. Borrowed shares let skeptics put capital behind that view and, in " +
+      "doing so, add selling pressure and price discovery when optimism looks " +
+      "excessive. The economic role is not “betting against companies” for its own " +
+      "sake; it is correcting prices when the long side has overpaid for the claim " +
+      "on future cash flows.",
+    benefits: [
+      "Direct way to profit from a decline without using options",
+      "Can hedge or offset long exposure in the same name or sector",
+      "Forces a clearer thesis: what breaks, and over what horizon?",
+      "Still a simple single-leg structure — no strikes or expiration to manage",
+      "Useful contrast to long equity: same vehicle, inverted P&L intuition",
+    ],
+    risks: [
+      "Theoretically unlimited loss if the stock keeps rising (no cap like a long’s cost basis)",
+      "Short squeezes and violent squeezes on low float / heavily shorted names",
+      "Borrow can be recalled or expensive (hard-to-borrow fees) in live markets",
+      "Gaps up on news can inflict large overnight losses",
+      "Timing risk: a correct long-term bearish view can still lose if you are early",
+    ],
+    goodConditions: [
+      "A specific bearish thesis (overvaluation, broken story, negative catalyst) — not just “it went up a lot”",
+      "Adequate liquidity and borrow so entry/exit are realistic for practice",
+      "You size small enough that an adverse squeeze is a lesson, not a wipeout",
+      "You can monitor marks at eod and follow-up — shorts need active attention",
+      "You understand you are fighting the long-run upward drift of many equity markets",
+    ],
+    exampleSectorsOrCompanies: [
+      "Crowded momentum names after a narrative peak (illustrative learning setups, not recommendations)",
+      "Overlevered consumer or speculative growth stocks when fundamentals deteriorate",
+      "Sector pairs later in the curriculum — for now, single-name shorts for mechanics",
+      "Avoid treating “meme” / squeeze-prone tickers as casual practice size",
+      "Illustrative only — pick liquid names you can explain in a short thesis",
+    ],
+    legs: [
+      { side: "sell_short", vehicleType: "equity", label: "Sell short shares" },
+    ],
+  },
   covered_call: stub("covered_call", [
     {
       side: "buy",

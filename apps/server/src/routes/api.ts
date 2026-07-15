@@ -14,9 +14,21 @@ function httpError(err: unknown): { status: number; message: string } {
   if (err && typeof err === "object" && "name" in err && (err as { name: string }).name === "ZodError") {
     return { status: 400, message: String(err) };
   }
+  if (err instanceof AggregateError) {
+    const parts = err.errors.map((e) =>
+      e instanceof Error ? e.message : String(e),
+    );
+    return {
+      status: 503,
+      message: parts.join("; ") || "Database connection failed",
+    };
+  }
+  if (err instanceof Error && err.message) {
+    return { status: 500, message: err.message };
+  }
   return {
     status: 500,
-    message: err instanceof Error ? err.message : "Internal server error",
+    message: err instanceof Error ? err.message || "Internal server error" : "Internal server error",
   };
 }
 
