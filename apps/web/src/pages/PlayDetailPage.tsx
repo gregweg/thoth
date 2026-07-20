@@ -146,9 +146,15 @@ export function PlayDetailPage() {
           <tbody>
             {detail.legs.map((leg) => (
               <tr key={leg.id}>
-                <td>{leg.symbol}</td>
+                <td>
+                  {leg.symbol}
+                  <div className="muted">{leg.vehicleType}</div>
+                </td>
                 <td>{leg.side}</td>
-                <td>{leg.quantity}</td>
+                <td>
+                  {leg.quantity}
+                  {leg.vehicleType === "option" ? " ctr" : " sh"}
+                </td>
                 <td>{formatMoney(leg.price)}</td>
                 <td>
                   {formatMoney(leg.markPrice)}{" "}

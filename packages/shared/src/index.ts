@@ -4,3 +4,4 @@ export * from "./strategyRegistry.js";
 export * from "./schemas.js";
 export * from "./pnl.js";
 export * from "./checkpoints.js";
+export * from "./syntheticOption.js";

@@ -372,6 +372,14 @@ during Phase 0 smoke testing).
 P&L already inverts correctly when price falls. Place a practice short in the UI,
 capture `eod`, mark reviewed, confirm `covered_call` unlocks.
 
+**Phase 3 (`covered_call`) — content + synthetic options done in code.** Education
+copy in `strategyContentRegistry.covered_call`. Trade form supports optional long
+shares + short call (strike/expiration). Option fills/marks use synthetic
+Black–Scholes premiums from the live underlying spot (fixed IV assumption), not a
+live options chain. P&L uses a 100× contract multiplier on option legs. Place a
+practice covered call, capture `eod`, mark reviewed, confirm `cash_secured_put`
+unlocks.
+
 Grouping (`PlayGroup`) functionality gets built out during the `pairs_trade` phase
 (#13), since that's the strategy that actually needs it — earlier strategies can
 technically be assigned to a group manually, but there's no strong reason to before

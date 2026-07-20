@@ -102,6 +102,8 @@ export interface LegTemplate {
   vehicleType: VehicleType;
   label: string;
   optional?: boolean;
+  /** For option legs: default call/put when the form does not override. */
+  defaultOptionType?: "call" | "put";
 }
 
 export interface StrategyContent {

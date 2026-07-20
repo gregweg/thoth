@@ -30,6 +30,7 @@ export interface StrategyListItem {
       vehicleType: string;
       label: string;
       optional?: boolean;
+      defaultOptionType?: "call" | "put";
     }>;
   };
 }
@@ -59,6 +60,7 @@ export interface PlayDetail {
     fees?: number;
     markPrice: number;
     markCheckpoint: string;
+    multiplier?: number;
   }>;
   snapshots: Array<{
     id: string;

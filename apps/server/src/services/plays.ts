@@ -1,4 +1,5 @@
 import {
+  OPTION_CONTRACT_MULTIPLIER,
   STRATEGY_ORDER,
   computeAggregatePnl,
   createPlaySchema,
@@ -10,6 +11,8 @@ import {
   refreshPricesSchema,
   strategyContentRegistry,
   type CreatePlayInput,
+  type CreatePlayLegInput,
+  type OptionMeta,
   type StrategyType,
 } from "@ill/shared";
 import { and, eq, inArray } from "drizzle-orm";
@@ -22,9 +25,18 @@ import {
   transactions,
 } from "../db/schema.js";
 import type { MarketDataProvider } from "../marketData/index.js";
+import {
+  getEquitySpot,
+  markInstrument,
+  priceOptionLeg,
+} from "../marketData/pricing.js";
 
 function num(value: string | null | undefined): number {
   return value == null ? 0 : Number(value);
+}
+
+function multiplierFor(vehicleType: string): number {
+  return vehicleType === "option" ? OPTION_CONTRACT_MULTIPLIER : 1;
 }
 
 export async function listStrategies() {
@@ -107,7 +119,19 @@ export async function createPlay(
     throw err;
   }
 
+  if (input.strategyType === "covered_call") {
+    const hasShortCall = input.legs.some(
+      (l) => l.vehicleType === "option" && l.side === "sell",
+    );
+    if (!hasShortCall) {
+      const err = new Error("covered_call requires a sell-call option leg");
+      (err as Error & { status: number }).status = 400;
+      throw err;
+    }
+  }
+
   const executedAt = new Date();
+  const asOf = input.entryDate;
   const quoteCache = new Map<string, number>();
 
   return db.transaction(async (tx) => {
@@ -126,13 +150,19 @@ export async function createPlay(
     const createdTxs = [];
 
     for (const leg of input.legs) {
-      const symbol = leg.symbol.toUpperCase();
+      const resolved = await resolveLegInstrumentAndPrice(
+        market,
+        quoteCache,
+        leg,
+        asOf,
+      );
+
       let [instrument] = await tx
         .select()
         .from(instruments)
         .where(
           and(
-            eq(instruments.symbol, symbol),
+            eq(instruments.symbol, resolved.symbol),
             eq(instruments.vehicleType, leg.vehicleType),
           ),
         );
@@ -141,23 +171,15 @@ export async function createPlay(
         [instrument] = await tx
           .insert(instruments)
           .values({
-            symbol,
+            symbol: resolved.symbol,
             vehicleType: leg.vehicleType,
-            underlyingSymbol: leg.underlyingSymbol?.toUpperCase(),
+            underlyingSymbol: resolved.underlyingSymbol,
+            meta: resolved.meta ?? null,
           })
           .returning();
       }
 
       if (!instrument) throw new Error("Failed to upsert instrument");
-
-      let fillPrice = leg.price;
-      if (fillPrice == null) {
-        if (!quoteCache.has(symbol)) {
-          const quote = await market.getQuote(symbol);
-          quoteCache.set(symbol, quote.price);
-        }
-        fillPrice = quoteCache.get(symbol)!;
-      }
 
       const [txRow] = await tx
         .insert(transactions)
@@ -166,7 +188,7 @@ export async function createPlay(
           instrumentId: instrument.id,
           side: leg.side,
           quantity: String(leg.quantity),
-          price: String(fillPrice),
+          price: String(resolved.fillPrice),
           fees: leg.fees != null ? String(leg.fees) : null,
           executedAt,
         })
@@ -176,7 +198,7 @@ export async function createPlay(
         instrumentId: instrument.id,
         playId: play.id,
         capturedAt: executedAt,
-        price: String(fillPrice),
+        price: String(resolved.fillPrice),
         checkpoint: "entry",
       });
 
@@ -185,6 +207,42 @@ export async function createPlay(
 
     return { play, transactions: createdTxs };
   });
+}
+
+async function resolveLegInstrumentAndPrice(
+  market: MarketDataProvider,
+  cache: Map<string, number>,
+  leg: CreatePlayLegInput,
+  asOf: string,
+): Promise<{
+  symbol: string;
+  fillPrice: number;
+  underlyingSymbol?: string;
+  meta?: OptionMeta;
+}> {
+  if (leg.vehicleType === "option") {
+    const underlying = (
+      leg.underlyingSymbol ?? leg.symbol
+    ).toUpperCase();
+    const priced = await priceOptionLeg(market, cache, {
+      underlyingSymbol: underlying,
+      optionType: leg.optionType!,
+      strike: leg.strike!,
+      expiration: leg.expiration!,
+      asOf,
+    });
+    return {
+      symbol: priced.symbol,
+      fillPrice: leg.price ?? priced.price,
+      underlyingSymbol: underlying,
+      meta: priced.meta,
+    };
+  }
+
+  const symbol = leg.symbol.toUpperCase();
+  const fillPrice =
+    leg.price ?? (await getEquitySpot(market, symbol, cache));
+  return { symbol, fillPrice };
 }
 
 export async function listPlays(filters?: {
@@ -246,11 +304,14 @@ export async function getPlayDetail(playId: string) {
   const legs = txs.map((t) => {
     const instrument = instrumentMap.get(t.instrumentId);
     const mark = latestByInstrument.get(t.instrumentId);
+    const vehicleType = instrument?.vehicleType ?? "equity";
     return {
       id: t.id,
       instrumentId: t.instrumentId,
       symbol: instrument?.symbol ?? "?",
-      vehicleType: instrument?.vehicleType ?? "equity",
+      vehicleType,
+      underlyingSymbol: instrument?.underlyingSymbol ?? null,
+      meta: instrument?.meta ?? null,
       side: t.side,
       quantity: num(t.quantity),
       price: num(t.price),
@@ -258,6 +319,7 @@ export async function getPlayDetail(playId: string) {
       executedAt: t.executedAt.toISOString(),
       markPrice: mark ? num(mark.price) : num(t.price),
       markCheckpoint: mark?.checkpoint ?? "entry",
+      multiplier: multiplierFor(vehicleType),
     };
   });
 
@@ -268,6 +330,7 @@ export async function getPlayDetail(playId: string) {
       side: l.side,
       markPrice: l.markPrice,
       fees: l.fees,
+      multiplier: l.multiplier,
     })),
   );
 
@@ -397,17 +460,19 @@ export async function refreshPrices(
       : [];
 
   const capturedAt = new Date();
+  const asOf = formatIsoDate(capturedAt);
+  const quoteCache = new Map<string, number>();
   const created = [];
 
   for (const instrument of instrumentRows) {
-    const quote = await market.getQuote(instrument.symbol);
+    const price = await markInstrument(market, quoteCache, instrument, asOf);
     const [snap] = await db
       .insert(priceSnapshots)
       .values({
         instrumentId: instrument.id,
         playId: play.id,
         capturedAt,
-        price: String(quote.price),
+        price: String(price),
         checkpoint: input.checkpoint,
       })
       .returning();

@@ -6,6 +6,8 @@ export interface SingleLegPnlInput {
   side: Side;
   markPrice: number;
   fees?: number;
+  /** Contract multiplier (100 for equity options, 1 for shares). */
+  multiplier?: number;
 }
 
 export interface SingleLegPnlResult {
@@ -19,12 +21,19 @@ export interface SingleLegPnlResult {
  * Short (sell / sell_short): profit when mark < entry.
  */
 export function computeSingleLegPnl(input: SingleLegPnlInput): SingleLegPnlResult {
-  const { entryPrice, quantity, side, markPrice, fees = 0 } = input;
+  const {
+    entryPrice,
+    quantity,
+    side,
+    markPrice,
+    fees = 0,
+    multiplier = 1,
+  } = input;
   const isLong = side === "buy" || side === "buy_to_cover";
   const direction = isLong ? 1 : -1;
   const unrealizedPnl =
-    direction * (markPrice - entryPrice) * quantity - fees;
-  const notional = entryPrice * quantity;
+    direction * (markPrice - entryPrice) * quantity * multiplier - fees;
+  const notional = entryPrice * quantity * multiplier;
   const pctReturn = notional === 0 ? 0 : unrealizedPnl / notional;
   return { unrealizedPnl, pctReturn };
 }
@@ -35,6 +44,7 @@ export interface LegForAggregate {
   side: Side;
   markPrice: number;
   fees?: number;
+  multiplier?: number;
 }
 
 /** Sum single-leg P&L; pctReturn is vs total absolute entry notional. */

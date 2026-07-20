@@ -17,16 +17,49 @@ export const vehicleTypeSchema = z.enum([
 
 export const checkpointSchema = z.enum(["entry", "eod", "follow_up", "manual"]);
 
-export const createPlayLegSchema = z.object({
-  symbol: z.string().min(1).max(64),
-  vehicleType: vehicleTypeSchema,
-  side: sideSchema,
-  quantity: z.number().positive(),
-  /** Optional override; if omitted, server fetches quote as fill price. */
-  price: z.number().positive().optional(),
-  fees: z.number().nonnegative().optional(),
-  underlyingSymbol: z.string().min(1).max(32).optional(),
-});
+export const optionTypeSchema = z.enum(["call", "put"]);
+
+export const createPlayLegSchema = z
+  .object({
+    symbol: z.string().min(1).max(64),
+    vehicleType: vehicleTypeSchema,
+    side: sideSchema,
+    quantity: z.number().positive(),
+    /** Optional override; if omitted, server fetches/synthesizes fill price. */
+    price: z.number().positive().optional(),
+    fees: z.number().nonnegative().optional(),
+    underlyingSymbol: z.string().min(1).max(32).optional(),
+    optionType: optionTypeSchema.optional(),
+    strike: z.number().positive().optional(),
+    expiration: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "expiration must be YYYY-MM-DD")
+      .optional(),
+  })
+  .superRefine((leg, ctx) => {
+    if (leg.vehicleType !== "option") return;
+    if (leg.optionType == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "optionType is required for option legs",
+        path: ["optionType"],
+      });
+    }
+    if (leg.strike == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "strike is required for option legs",
+        path: ["strike"],
+      });
+    }
+    if (leg.expiration == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "expiration is required for option legs",
+        path: ["expiration"],
+      });
+    }
+  });
 
 export const createPlaySchema = z.object({
   strategyType: strategyTypeSchema,

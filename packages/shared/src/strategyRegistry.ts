@@ -111,15 +111,65 @@ export const strategyContentRegistry: StrategyContentRegistry = {
       { side: "sell_short", vehicleType: "equity", label: "Sell short shares" },
     ],
   },
-  covered_call: stub("covered_call", [
-    {
-      side: "buy",
-      vehicleType: "equity",
-      label: "Long shares (or already held)",
-      optional: true,
-    },
-    { side: "sell", vehicleType: "option", label: "Sell call" },
-  ]),
+  covered_call: {
+    strategyType: "covered_call",
+    description:
+      "Own (or buy) shares and sell a call option against them — typically one " +
+      "call contract per 100 shares. You collect the call premium up front. If " +
+      "the stock stays below the strike through expiration, the call expires and " +
+      "you keep the premium on top of any stock move. If the stock rallies above " +
+      "the strike, your upside is capped near the strike (shares get called away " +
+      "in a live brokerage; here we track the combined mark-to-market). This is a " +
+      "two-leg structure: long equity + short call.",
+    economicCleavage:
+      "A covered call sells volatility and upside convexity to someone who wants " +
+      "levered participation, while you act as a willing seller of that upside in " +
+      "exchange for income. Economically you are converting potential capital " +
+      "gains above the strike into a known premium — useful when you are mildly " +
+      "bullish or neutral, happy to own the stock, and want to get paid for " +
+      "capping your upside.",
+    benefits: [
+      "Generates premium income while you hold the shares",
+      "Slightly cushions downside vs. holding stock alone (by the premium received)",
+      "Defined opportunity set: you choose strike and expiration to match your view",
+      "Still long the stock below the strike — you participate in moderate rallies",
+      "Good bridge from plain equity into options mechanics without naked short risk on the call",
+    ],
+    risks: [
+      "Upside is capped: a big rally leaves you underperforming a plain long",
+      "Stock can still fall a lot — premium only offsets a slice of the decline",
+      "Assignment / early exercise risk in live markets around dividends and deep ITM",
+      "Opportunity cost if you are called away and the name keeps running",
+      "Choosing strikes/expirations poorly can harvest little premium for lots of capped upside",
+    ],
+    goodConditions: [
+      "You already want to own the shares (or are fine buying them) at current levels",
+      "Mildly bullish to neutral outlook — not a high-conviction breakout bet",
+      "Implied vol is rich enough that selling the call feels fairly paid (here: synthetic IV)",
+      "You can size in 100-share lots so one short call is properly covered",
+      "You accept giving up upside above your chosen strike for the premium",
+    ],
+    exampleSectorsOrCompanies: [
+      "Large-cap dividend payers and liquid mega-caps often used for covered-call programs",
+      "Broad equity ETFs (e.g. SPY) as a liquid underlying for learning strike selection",
+      "Quality compounders you are happy to hold if not called away",
+      "Illustrative only — not recommendations; keep practice size small",
+    ],
+    legs: [
+      {
+        side: "buy",
+        vehicleType: "equity",
+        label: "Long shares (cover)",
+        optional: true,
+      },
+      {
+        side: "sell",
+        vehicleType: "option",
+        label: "Sell call",
+        defaultOptionType: "call",
+      },
+    ],
+  },
   cash_secured_put: stub("cash_secured_put", [
     { side: "sell", vehicleType: "option", label: "Sell put (cash-secured)" },
   ]),

@@ -34,6 +34,18 @@ describe("computeSingleLegPnl", () => {
     });
     expect(result.unrealizedPnl).toBe(8);
   });
+
+  it("applies option contract multiplier on a short call", () => {
+    // Sold call at $5, mark $3 → $2 credit * 1 contract * 100
+    const result = computeSingleLegPnl({
+      entryPrice: 5,
+      quantity: 1,
+      side: "sell",
+      markPrice: 3,
+      multiplier: 100,
+    });
+    expect(result.unrealizedPnl).toBe(200);
+  });
 });
 
 describe("computeAggregatePnl", () => {
